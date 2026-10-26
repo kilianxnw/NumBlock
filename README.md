@@ -35,7 +35,7 @@ Im Menüleisten-Icon (#) lässt sich einstellen:
 - Aktivierungstaste: rechte ⌘ (Standard), rechte ⌥ oder fn/🌐
 - Auslösen: **beim Berühren** (Standard, am schnellsten) oder **beim Klicken** (Finger dürfen aufliegen, erst der Klick zählt)
 - **Ton beim Tippen**: ein kurzer, weicher „Thock“, ähnlich einer mechanischen Taste; er folgt der Systemlautstärke, bei Stummschaltung ist er still
-- **Design**: Automatisch (folgt Hell/Dunkel des Systems), Hell, Dunkel, Glas (Liquid Glass), Rechner, Aurora; beim Auswählen erscheint eine kurze Vorschau
+- **Design**: Automatisch (folgt Hell/Dunkel des Systems), Hell, Dunkel, Glas (echtes Liquid Glass: frei schwebende, durchsichtige Glastasten, die beim Drücken kurz ineinanderfließen), Rechner, Aurora; beim Auswählen erscheint eine kurze Vorschau
 - **Vibration**: Aus / Leicht / Mittel / Stark; die Taptic Engine wird direkt angesteuert, beim Auswählen gibt es eine Vorschau
 - Overlay ein/aus, bei der Anmeldung starten
 
@@ -104,6 +104,7 @@ Abhängigkeiten.
 | `Sources/InputTap.swift` | Event-Tap-Thread |
 | `Sources/Feedback.swift` | Ton (synthetisiert, AVAudioEngine) und Taptic-Engine-Vibration |
 | `Sources/Theme.swift` | Die Designs (Farben, Formen, Hintergrund) |
+| `Sources/LiquidGlassBoard.swift` | Glas-Design mit macOS-26-Liquid-Glass-Tasten |
 | `Sources/Overlay.swift` | Anzeige-Panel |
 | `Sources/AppDelegate.swift` | Menüleiste, Einstellungen, Berechtigungen |
 | `Sources/main.swift` | Einstieg, `--selftest`, `--probe` |

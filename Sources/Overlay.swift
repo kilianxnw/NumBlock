@@ -23,6 +23,23 @@ final class Overlay {
     static let height = pad * 2 + displayH + gap + gridH
     private static let windowRadius: CGFloat = 24
 
+    static let keyFrames: [PadKey: CGRect] = {
+        let p = pad, g = gap, w = cellW, h = cellH
+        let gridX = p + leftW + g
+        var frames: [PadKey: CGRect] = [:]
+        for row in 0..<3 {
+            for col in 0..<3 {
+                frames[PadKey(rawValue: row * 3 + col + 1)!] =
+                    CGRect(x: gridX + CGFloat(col) * (w + g), y: p + CGFloat(row) * (h + g), width: w, height: h)
+            }
+        }
+        let leftH = (gridH - g) / 2
+        frames[.d0] = CGRect(x: p, y: p, width: leftW, height: leftH)
+        frames[.delete] = CGRect(x: p, y: p + leftH + g, width: leftW, height: leftH)
+        return frames
+    }()
+    static let displayFrame = CGRect(x: pad, y: pad + gridH + gap, width: width - 2 * pad, height: displayH)
+
     private struct KeyLayers {
         let bg: CALayer
         let text: CATextLayer
@@ -32,6 +49,10 @@ final class Overlay {
     private let container: NSView
     private let host: NSView
     private var backgroundView: NSView?
+    /// LiquidGlassBoard while the "Glas" design is active on macOS 26.
+    private var glassBoard: NSView?
+    @available(macOS 26.0, *)
+    private var liquid: LiquidGlassBoard? { glassBoard as? LiquidGlassBoard }
     private var keys: [PadKey: KeyLayers] = [:]
     private var flashGeneration: [PadKey: Int] = [:]
 
@@ -136,7 +157,10 @@ final class Overlay {
             k.text.foregroundColor = theme.keyPressedText.cgColor
         }
         CATransaction.commit()
+        if #available(macOS 26.0, *) { liquid?.hold(pressed) }
     }
+
+    var frame: NSRect { panel.frame }
 
     /// Diagnostics (`--render`): draws the overlay offscreen into `ctx` at `origin` (points).
     /// Blur materials are approximated with flat translucent fills.
@@ -190,10 +214,7 @@ final class Overlay {
 
     private func buildLayers() {
         guard let root = host.layer else { return }
-        let p = Self.pad, g = Self.gap, w = Self.cellW, h = Self.cellH
-        let gridX = p + Self.leftW + g
-
-        func key(_ k: PadKey, _ frame: CGRect) {
+        for (k, frame) in Self.keyFrames {
             let bg = CALayer()
             bg.frame = frame
             bg.cornerCurve = .continuous
@@ -204,17 +225,7 @@ final class Overlay {
             keys[k] = KeyLayers(bg: bg, text: text)
         }
 
-        for row in 0..<3 {
-            for col in 0..<3 {
-                key(PadKey(rawValue: row * 3 + col + 1)!,
-                    CGRect(x: gridX + CGFloat(col) * (w + g), y: p + CGFloat(row) * (h + g), width: w, height: h))
-            }
-        }
-        let leftH = (Self.gridH - g) / 2
-        key(.d0, CGRect(x: p, y: p, width: Self.leftW, height: leftH))
-        key(.delete, CGRect(x: p, y: p + leftH + g, width: Self.leftW, height: leftH))
-
-        displayBG.frame = CGRect(x: p, y: p + Self.gridH + g, width: Self.width - 2 * p, height: Self.displayH)
+        displayBG.frame = Self.displayFrame
         displayBG.cornerCurve = .continuous
         displayBG.cornerRadius = 14
         root.addSublayer(displayBG)
@@ -291,6 +302,8 @@ final class Overlay {
     private func installBackground() {
         backgroundView?.removeFromSuperview()
         host.removeFromSuperview()
+        glassBoard = nil
+        panel.hasShadow = true
         let bounds = container.bounds
         let r = Self.windowRadius
         container.appearance = NSAppearance(named: theme.dark ? .darkAqua : .aqua)
@@ -325,13 +338,13 @@ final class Overlay {
             view = material(m)
         case .glass:
             if #available(macOS 26.0, *) {
-                let glass = NSGlassEffectView(frame: bounds)
-                glass.cornerRadius = r
-                glass.style = .regular
-                host.frame = glass.bounds
-                glass.contentView = host
-                view = glass
+                // Floating glass keys, no slab; the glass casts its own shadow.
+                let board = LiquidGlassBoard(frame: bounds, keyFrames: Self.keyFrames, displayFrame: Self.displayFrame)
+                board.setTyped(typed)
+                view = board
+                glassBoard = board
                 hostInside = true
+                panel.hasShadow = false
             } else {
                 view = material(.hudWindow)
             }
@@ -389,6 +402,7 @@ final class Overlay {
         setScale(screen.backingScaleFactor)
         pill.isHidden = !latched
         CATransaction.commit()
+        if #available(macOS 26.0, *) { liquid?.setLatched(latched) }
 
         let vf = screen.visibleFrame
         panel.setFrameOrigin(origin ?? NSPoint(x: vf.maxX - Self.width - 20, y: vf.minY + 20))
@@ -401,10 +415,15 @@ final class Overlay {
         CATransaction.setDisableActions(true)
         display.string = s
         CATransaction.commit()
+        if #available(macOS 26.0, *) { liquid?.setTyped(s) }
     }
 
     /// Instant highlight + squeeze, then a short spring back.
     private func press(_ key: PadKey) {
+        if #available(macOS 26.0, *), let liquid {
+            liquid.press(key)
+            return
+        }
         guard let l = keys[key] else { return }
         let t = theme
         CATransaction.begin()
