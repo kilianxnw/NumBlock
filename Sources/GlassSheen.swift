@@ -33,8 +33,8 @@ final class GlassSheenView: NSView {
         edgeGlow.fillRule = .evenOdd
         edgeGlow.fillColor = NSColor.white.cgColor
         edgeGlow.shadowColor = NSColor.white.cgColor
-        edgeGlow.shadowOpacity = 0.9
-        edgeGlow.shadowRadius = 5
+        edgeGlow.shadowOpacity = 0.45
+        edgeGlow.shadowRadius = 4
         edgeGlow.shadowOffset = CGSize(width: 0, height: -1.5)   // light from above
         edgeGlow.mask = edgeMask
         tinted.addSublayer(edgeGlow)
@@ -46,22 +46,22 @@ final class GlassSheenView: NSView {
             g.endPoint = CGPoint(x: 1, y: 1)
             glintClip.addSublayer(g)
         }
-        topGlint.colors = [NSColor.white.withAlphaComponent(0.5).cgColor, NSColor.white.withAlphaComponent(0).cgColor]
-        bottomGlint.colors = [NSColor.white.withAlphaComponent(1).cgColor, NSColor.white.withAlphaComponent(0).cgColor]
+        topGlint.colors = [NSColor.white.withAlphaComponent(0.22).cgColor, NSColor.white.withAlphaComponent(0).cgColor]
+        bottomGlint.colors = [NSColor.white.withAlphaComponent(0.55).cgColor, NSColor.white.withAlphaComponent(0).cgColor]
         tinted.addSublayer(glintClip)
 
         // Soft rim (overlay): bright at the top and bottom edge, faint on the sides.
-        rim.colors = [1.0, 0.5, 0.15, 0.15, 0.5, 0.9].map { NSColor.white.withAlphaComponent($0).cgColor }
+        rim.colors = [0.55, 0.25, 0.06, 0.06, 0.25, 0.45].map { NSColor.white.withAlphaComponent($0).cgColor }
         rim.locations = [0, 0.18, 0.45, 0.6, 0.86, 1]
         rim.startPoint = CGPoint(x: 0.5, y: 1)
         rim.endPoint = CGPoint(x: 0.5, y: 0)
         rimMask.fillColor = nil
         rimMask.strokeColor = NSColor.black.cgColor
-        rimMask.lineWidth = 2.5
+        rimMask.lineWidth = 2
         rim.mask = rimMask
         tinted.addSublayer(rim)
 
-        hairline.colors = [0.38, 0.10, 0.04, 0.04, 0.10, 0.22].map { NSColor.white.withAlphaComponent($0).cgColor }
+        hairline.colors = [0.22, 0.06, 0.02, 0.02, 0.06, 0.12].map { NSColor.white.withAlphaComponent($0).cgColor }
         hairline.locations = rim.locations
         hairline.startPoint = rim.startPoint
         hairline.endPoint = rim.endPoint
