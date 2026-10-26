@@ -1,21 +1,22 @@
 # TrackNum – Nummernblock auf dem Trackpad
 
 Kleine macOS-Menüleisten-App: Solange die **rechte ⌘-Taste** gehalten wird (oder nach
-kurzem Antippen fixiert ist), wird die **rechte Hälfte des Trackpads** zum Nummernblock.
-Ein kleines Overlay rechts unten zeigt das Feld und die eingegebenen Ziffern.
+kurzem Antippen fixiert ist), wird das **ganze Trackpad** zum Nummernblock: rechts die
+Ziffern 1–9, links oben ⌫ (löscht ein Zeichen) und links unten 0, wie bei einem echten
+Ziffernblock. Ein kleines Overlay rechts unten zeigt das Feld und die Eingabe.
 
 ```
- Trackpad (rechte Hälfte)
-┌──────────────┬───────────────────────┐
-│              │           0           │  ← ganze obere Zeile = 0
-│              ├───────┬───────┬───────┤
-│   normales   │   7   │   8   │   9   │
-│   Trackpad   ├───────┼───────┼───────┤
-│  (inaktiv im │   4   │   5   │   6   │
-│  Numpad-Mode)├───────┼───────┼───────┤
-│              │   1   │   2   │   3   │
-└──────────────┴───────┴───────┴───────┘
+ Trackpad
+┌──────────────────┬───────┬───────┬───────┐
+│                  │   7   │   8   │   9   │
+│        ⌫         ├───────┼───────┼───────┤
+├──────────────────┤   4   │   5   │   6   │
+│                  ├───────┼───────┼───────┤
+│        0         │   1   │   2   │   3   │
+└──────────────────┴───────┴───────┴───────┘
 ```
+
+![Designs](docs/designs.png)
 
 ## Bedienung
 
@@ -34,6 +35,7 @@ Im Menüleisten-Icon (#) lässt sich einstellen:
 - Aktivierungstaste: rechte ⌘ (Standard), rechte ⌥ oder fn/🌐
 - Auslösen: **beim Berühren** (Standard, am schnellsten) oder **beim Klicken** (Finger dürfen aufliegen, erst der Klick zählt)
 - **Ton beim Tippen**: ein kurzer, weicher „Thock“, ähnlich einer mechanischen Taste; er folgt der Systemlautstärke, bei Stummschaltung ist er still
+- **Design**: Automatisch (folgt Hell/Dunkel des Systems), Hell, Dunkel, Glas (Liquid Glass), Rechner, Aurora; beim Auswählen erscheint eine kurze Vorschau
 - **Vibration**: Aus / Leicht / Mittel / Stark; die Taptic Engine wird direkt angesteuert, beim Auswählen gibt es eine Vorschau
 - Overlay ein/aus, bei der Anmeldung starten
 
@@ -53,6 +55,7 @@ erhalten.
 
 Diagnose:
 - `…/TrackNum --probe` gibt jede Berührung mit Koordinaten und erkannter Taste aus.
+- `…/TrackNum --render datei.png` rendert alle Designs in ein Bild.
 - `…/TrackNum --feedback` spielt sechs Klicks mit starker Vibration ab (Finger aufs Trackpad legen).
 
 ## Entwicklungsstrategie
@@ -68,8 +71,8 @@ Abhängigkeiten.
    rechten Hälfte löst sofort aus, ohne auf Klick oder Abheben zu warten. Finger, die
    schon auflagen, als der Modus aktiviert wurde, werden ignoriert. Ein 45-ms-Schutz
    verhindert doppelte Eingaben.
-3. **Zuordnung als reine Funktion** (`PadLayout`): `splitX = 0.5`, obere 25 % = 0, darunter
-   ein 3×3-Raster. Sie ist mit `--selftest` testbar.
+3. **Zuordnung als reine Funktion** (`PadLayout`): rechts von `splitX = 0.5` ein 3×3-Raster
+   über die volle Höhe, links oben ⌫ und links unten 0. Sie ist mit `--selftest` testbar.
 4. **Tastenausgabe:** `CGEvent` mit echten Keypad-Keycodes (`kVK_ANSI_Keypad0…9`),
    Modifier-Flags explizit auf „Numpad“ gesetzt, damit die gehaltene ⌘ kein
    ⌘1 (Tab-Wechsel) daraus macht. Die Ausgabe ist unabhängig vom Tastaturlayout.
@@ -100,6 +103,7 @@ Abhängigkeiten.
 | `Sources/Engine.swift` | Zustandsmaschine, Tastenausgabe |
 | `Sources/InputTap.swift` | Event-Tap-Thread |
 | `Sources/Feedback.swift` | Ton (synthetisiert, AVAudioEngine) und Taptic-Engine-Vibration |
+| `Sources/Theme.swift` | Die Designs (Farben, Formen, Hintergrund) |
 | `Sources/Overlay.swift` | Anzeige-Panel |
 | `Sources/AppDelegate.swift` | Menüleiste, Einstellungen, Berechtigungen |
 | `Sources/main.swift` | Einstieg, `--selftest`, `--probe` |

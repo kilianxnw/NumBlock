@@ -258,17 +258,18 @@ final class Engine {
 
     private func emit(_ key: PadKey) {
         post(key)
-        Feedback.shared.keyPressed()
+        Feedback.shared.keyPressed(key)
         DispatchQueue.main.async { self.onKey?(key) }
     }
 
     private func post(_ key: PadKey) {
+        let isDigit = key != .delete
         var ch = UniChar(0x30 + key.rawValue)
         for down in [true, false] {
             guard let e = CGEvent(keyboardEventSource: keySource, virtualKey: key.keyCode, keyDown: down) else { continue }
-            // Explicit flags: a held ⌘/⌥ must not turn the digit into a shortcut.
-            e.flags = .maskNumericPad
-            e.keyboardSetUnicodeString(stringLength: 1, unicodeString: &ch)
+            // Explicit flags: a held ⌘/⌥ must not turn the key into a shortcut (⌘⌫ would delete a whole line).
+            e.flags = isDigit ? .maskNumericPad : []
+            if isDigit { e.keyboardSetUnicodeString(stringLength: 1, unicodeString: &ch) }
             e.setIntegerValueField(.eventSourceUserData, value: Self.syntheticMarker)
             e.post(tap: .cghidEventTap)
         }

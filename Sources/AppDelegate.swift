@@ -32,6 +32,10 @@ final class Settings {
         }
         set { d.set(newValue.rawValue, forKey: "hapticStrength") }
     }
+    var theme: ThemeID {
+        get { ThemeID(rawValue: d.string(forKey: "theme") ?? "") ?? .auto }
+        set { d.set(newValue.rawValue, forKey: "theme") }
+    }
     var showOverlay: Bool {
         get { bool("showOverlay", default: true) }
         set { d.set(newValue, forKey: "showOverlay") }
@@ -40,7 +44,7 @@ final class Settings {
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let settings = Settings()
-    private let overlay = Overlay()
+    private lazy var overlay = Overlay(theme: settings.theme)
     private var statusItem: NSStatusItem!
     private var permissionTimer: Timer?
     private var deviceCount = 0
@@ -183,11 +187,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(hapticItem)
         menu.addItem(.separator())
 
+        let themeMenu = NSMenu()
+        for th in ThemeID.allCases {
+            let i = item(th.title, #selector(selectTheme(_:)), on: settings.theme == th)
+            i.representedObject = th.rawValue
+            i.image = th.swatch
+            themeMenu.addItem(i)
+            if th == .auto { themeMenu.addItem(.separator()) }
+        }
+        let themeItem = NSMenuItem(title: "Design", action: nil, keyEquivalent: "")
+        themeItem.submenu = themeMenu
+        menu.addItem(themeItem)
         menu.addItem(item("Overlay anzeigen", #selector(toggleOverlay), on: settings.showOverlay))
         menu.addItem(item("Bei Anmeldung starten", #selector(toggleLogin), on: SMAppService.mainApp.status == .enabled))
         menu.addItem(.separator())
 
-        let help = NSMenuItem(title: "\(settings.hotkey.title) halten = Numpad · kurz tippen = fixieren", action: nil, keyEquivalent: "")
+        let help = NSMenuItem(title: "\(settings.hotkey.title) halten = Numpad · kurz tippen = fixieren · links: ⌫ / 0", action: nil, keyEquivalent: "")
         help.isEnabled = false
         menu.addItem(help)
         menu.addItem(item("TrackNum beenden", #selector(quit), key: "q"))
@@ -219,6 +234,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func toggleOverlay() { settings.showOverlay.toggle() }
+
+    @objc private func selectTheme(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let th = ThemeID(rawValue: raw) else { return }
+        settings.theme = th
+        overlay.setTheme(th)
+        overlay.preview()
+    }
     @objc private func toggleSound() {
         settings.sound.toggle()
         applySettings()

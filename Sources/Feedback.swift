@@ -42,10 +42,10 @@ final class Feedback {
         config.withLock { $0 = Config(sound: sound, haptic: haptic) }
     }
 
-    func keyPressed() {
+    func keyPressed(_ key: PadKey) {
         let c = config.withLock { $0 }
         haptics.actuate(c.haptic)
-        if c.sound { sound.play() }
+        if c.sound { sound.play(delete: key == .delete) }
     }
 
     /// Spins up the audio engine as the numpad opens, so the first digit is not delayed.
@@ -108,6 +108,8 @@ final class ClickSound {
     private let engine = AVAudioEngine()
     private var players: [AVAudioPlayerNode] = []
     private var buffers: [AVAudioPCMBuffer] = []
+    /// Lower, softer variant for ⌫.
+    private var deleteBuffer: AVAudioPCMBuffer!
     private var next = 0
     private var idleStop: DispatchWorkItem?
     /// Keep the audio device awake only while in use.
@@ -123,6 +125,7 @@ final class ClickSound {
             players.append(player)
             buffers.append(Self.synthesize(format: format, pitch: pitch, seed: UInt32(i + 1)))
         }
+        deleteBuffer = Self.synthesize(format: format, pitch: 0.78, seed: 9)
     }
 
     func warmUp() {
@@ -132,12 +135,12 @@ final class ClickSound {
         }
     }
 
-    func play() {
+    func play(delete: Bool = false) {
         queue.async {
             guard self.ensureRunning() else { return }
             let i = self.next
             self.next = (i + 1) % self.players.count
-            self.players[i].scheduleBuffer(self.buffers[i], at: nil, options: .interrupts)
+            self.players[i].scheduleBuffer(delete ? self.deleteBuffer : self.buffers[i], at: nil, options: .interrupts)
             self.scheduleIdleStop()
         }
     }
