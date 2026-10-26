@@ -56,9 +56,9 @@ if let i = args.firstIndex(of: "--render"), i + 1 < args.count {
     ctx.drawLinearGradient(wallpaper, start: .zero, end: CGPoint(x: W, y: H), options: [])
     // Some shapes behind the designs, so blur and transparency are visible.
     let blobs: [(CGFloat, CGFloat, CGFloat, NSColor)] = [
-        (0.80, 0.80, 110, NSColor(srgbRed: 1.0, green: 0.55, blue: 0.2, alpha: 1)),
+        (0.80, 0.80, 110, NSColor(srgbRed: 0.55, green: 0.25, blue: 0.85, alpha: 1)),
         (0.93, 0.62, 80, .white),
-        (0.70, 0.62, 60, NSColor(srgbRed: 0.95, green: 0.3, blue: 0.5, alpha: 1)),
+        (0.70, 0.62, 60, NSColor(srgbRed: 1.0, green: 0.55, blue: 0.2, alpha: 1)),
         (0.88, 0.95, 70, NSColor(srgbRed: 0.2, green: 0.8, blue: 0.5, alpha: 1)),
         (0.25, 0.30, 90, NSColor(srgbRed: 1.0, green: 0.85, blue: 0.3, alpha: 1)),
     ]

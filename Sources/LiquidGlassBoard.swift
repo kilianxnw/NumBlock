@@ -123,7 +123,7 @@ final class LiquidGlassBoard: NSView {
 
     private func makeGlass(_ rect: CGRect, radius: CGFloat) -> NSGlassEffectView {
         let g = NSGlassEffectView(frame: rect)
-        g.style = .regular
+        g.style = .clear
         g.cornerRadius = radius
         return g
     }

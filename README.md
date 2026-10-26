@@ -105,7 +105,7 @@ Abhängigkeiten.
 | `Sources/Feedback.swift` | Ton (synthetisiert, AVAudioEngine) und Taptic-Engine-Vibration |
 | `Sources/Theme.swift` | Die Designs (Farben, Formen, Hintergrund) |
 | `Sources/LiquidGlassBoard.swift` | Glas-Design mit macOS-26-Liquid-Glass-Tasten |
-| `Sources/GlassSheen.swift` | Lichtrand, Kantenglühen und Glanzpunkte im iOS-Stil |
+| `Sources/GlassSheen.swift` | Lichtkanten und Glanzpunkte, die die Farbe des Hintergrunds aufnehmen |
 | `Sources/Overlay.swift` | Anzeige-Panel |
 | `Sources/AppDelegate.swift` | Menüleiste, Einstellungen, Berechtigungen |
 | `Sources/main.swift` | Einstieg, `--selftest`, `--probe` |

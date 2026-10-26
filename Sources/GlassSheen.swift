@@ -1,11 +1,16 @@
 import AppKit
 import CoreImage
 
-/// Lighting on top of a blurred backdrop that makes it read as a thick piece of glass
-/// (iOS 26 Control Center look): milky body, inner edge glow, bright gradient rim, specular glints.
+/// Lighting on top of the system glass that makes it read as a thick, clear lens (iOS 26 look).
+/// The edge glow and glints are overlay-blended: they brighten whatever colour is behind the glass
+/// (purple behind → purple shimmer) instead of painting white. Only a faint hairline rim is plain white.
 final class GlassSheenView: NSView {
     private let radius: CGFloat
-    private let frost = CALayer()
+    /// Overlay-blended group: edge glow, glints, soft rim.
+    let tinted = CALayer()
+    /// Plain hairline rim, defines the shape on any background.
+    let hairline = CAGradientLayer()
+    private let hairlineMask = CAShapeLayer()
     private let edgeGlow = CAShapeLayer()
     private let edgeMask = CAShapeLayer()
     private let rim = CAGradientLayer()
@@ -21,18 +26,18 @@ final class GlassSheenView: NSView {
         autoresizingMask = [.width, .height]
         guard let root = layer else { return }
 
-        frost.backgroundColor = NSColor.white.withAlphaComponent(0.13).cgColor
-        root.addSublayer(frost)
+        tinted.compositingFilter = CIFilter(name: "CIOverlayBlendMode")
+        root.addSublayer(tinted)
 
-        // Inner glow: a white "shadow" cast inwards from outside the shape – thick, lens-like edges.
+        // Inner glow: a "shadow" cast inwards from outside the shape – thick, lens-like edges.
         edgeGlow.fillRule = .evenOdd
         edgeGlow.fillColor = NSColor.white.cgColor
         edgeGlow.shadowColor = NSColor.white.cgColor
-        edgeGlow.shadowOpacity = 0.75
-        edgeGlow.shadowRadius = 6
+        edgeGlow.shadowOpacity = 0.9
+        edgeGlow.shadowRadius = 5
         edgeGlow.shadowOffset = CGSize(width: 0, height: -1.5)   // light from above
         edgeGlow.mask = edgeMask
-        root.addSublayer(edgeGlow)
+        tinted.addSublayer(edgeGlow)
 
         glintClip.masksToBounds = true
         for g in [topGlint, bottomGlint] {
@@ -41,20 +46,30 @@ final class GlassSheenView: NSView {
             g.endPoint = CGPoint(x: 1, y: 1)
             glintClip.addSublayer(g)
         }
-        topGlint.colors = [NSColor.white.withAlphaComponent(0.30).cgColor, NSColor.white.withAlphaComponent(0).cgColor]
-        bottomGlint.colors = [NSColor.white.withAlphaComponent(0.95).cgColor, NSColor.white.withAlphaComponent(0).cgColor]
-        root.addSublayer(glintClip)
+        topGlint.colors = [NSColor.white.withAlphaComponent(0.5).cgColor, NSColor.white.withAlphaComponent(0).cgColor]
+        bottomGlint.colors = [NSColor.white.withAlphaComponent(1).cgColor, NSColor.white.withAlphaComponent(0).cgColor]
+        tinted.addSublayer(glintClip)
 
-        // Rim: bright at the top and bottom edge, faint on the sides.
-        rim.colors = [0.95, 0.40, 0.10, 0.10, 0.45, 0.85].map { NSColor.white.withAlphaComponent($0).cgColor }
+        // Soft rim (overlay): bright at the top and bottom edge, faint on the sides.
+        rim.colors = [1.0, 0.5, 0.15, 0.15, 0.5, 0.9].map { NSColor.white.withAlphaComponent($0).cgColor }
         rim.locations = [0, 0.18, 0.45, 0.6, 0.86, 1]
         rim.startPoint = CGPoint(x: 0.5, y: 1)
         rim.endPoint = CGPoint(x: 0.5, y: 0)
         rimMask.fillColor = nil
         rimMask.strokeColor = NSColor.black.cgColor
-        rimMask.lineWidth = 1.3
+        rimMask.lineWidth = 2.5
         rim.mask = rimMask
-        root.addSublayer(rim)
+        tinted.addSublayer(rim)
+
+        hairline.colors = [0.38, 0.10, 0.04, 0.04, 0.10, 0.22].map { NSColor.white.withAlphaComponent($0).cgColor }
+        hairline.locations = rim.locations
+        hairline.startPoint = rim.startPoint
+        hairline.endPoint = rim.endPoint
+        hairlineMask.fillColor = nil
+        hairlineMask.strokeColor = NSColor.black.cgColor
+        hairlineMask.lineWidth = 0.8
+        hairline.mask = hairlineMask
+        root.addSublayer(hairline)
 
         relayout()
     }
@@ -82,8 +97,7 @@ final class GlassSheenView: NSView {
         let r = min(radius, b.height / 2, b.width / 2)
         let shape = CGPath(roundedRect: b, cornerWidth: r, cornerHeight: r, transform: nil)
 
-        frost.frame = b
-        frost.cornerRadius = r
+        tinted.frame = b
 
         let outside = CGMutablePath()
         outside.addRect(b.insetBy(dx: -24, dy: -24))
@@ -102,6 +116,10 @@ final class GlassSheenView: NSView {
         rimMask.frame = b
         let inset = rimMask.lineWidth / 2
         rimMask.path = CGPath(roundedRect: b.insetBy(dx: inset, dy: inset), cornerWidth: r - inset, cornerHeight: r - inset, transform: nil)
+        hairline.frame = b
+        hairlineMask.frame = b
+        let hi = hairlineMask.lineWidth / 2
+        hairlineMask.path = CGPath(roundedRect: b.insetBy(dx: hi, dy: hi), cornerWidth: r - hi, cornerHeight: r - hi, transform: nil)
         CATransaction.commit()
     }
 }
@@ -112,7 +130,7 @@ enum GlassPreview {
                      typed: String, pressed: PadKey, latched: Bool, scale: CGFloat) {
         guard let snapshot = ctx.makeImage() else { return }
         let ci = CIImage(cgImage: snapshot).clampedToExtent()
-            .applyingGaussianBlur(sigma: 14 * scale).cropped(to: CGRect(x: 0, y: 0, width: snapshot.width, height: snapshot.height))
+            .applyingGaussianBlur(sigma: 2.5 * scale).cropped(to: CGRect(x: 0, y: 0, width: snapshot.width, height: snapshot.height))
         guard let blurred = CIContext().createCGImage(ci, from: ci.extent) else { return }
 
         func glass(_ rect: CGRect, radius: CGFloat, glow: Bool) {
@@ -129,7 +147,7 @@ enum GlassPreview {
             ctx.addPath(CGPath(roundedRect: r, cornerWidth: rr, cornerHeight: rr, transform: nil))
             ctx.clip()
             // Slight magnification, like the lens edge of Liquid Glass.
-            let mag: CGFloat = 1.04
+            let mag: CGFloat = 1.06
             let full = CGRect(origin: .zero, size: canvas)
             let zoomed = CGRect(x: r.midX - (r.midX - full.minX) * mag, y: r.midY - (r.midY - full.minY) * mag,
                                 width: full.width * mag, height: full.height * mag)
@@ -143,7 +161,10 @@ enum GlassPreview {
             let sheen = GlassSheenView(frame: NSRect(origin: .zero, size: r.size), radius: radius)
             ctx.saveGState()
             ctx.translateBy(x: r.minX, y: r.minY)
-            sheen.layer?.render(in: ctx)
+            ctx.setBlendMode(.overlay)
+            sheen.tinted.render(in: ctx)
+            ctx.setBlendMode(.normal)
+            sheen.hairline.render(in: ctx)
             ctx.restoreGState()
         }
 
