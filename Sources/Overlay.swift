@@ -176,6 +176,13 @@ final class Overlay {
         }
         CATransaction.commit()
 
+        if case .glass = theme.background {
+            let canvas = CGSize(width: CGFloat(ctx.width) / scale, height: CGFloat(ctx.height) / scale)
+            GlassPreview.draw(into: ctx, canvas: canvas, origin: origin, keyFrames: Self.keyFrames, displayFrame: Self.displayFrame,
+                              typed: sample, pressed: pressed, latched: latched, scale: scale)
+            return
+        }
+
         ctx.saveGState()
         ctx.translateBy(x: origin.x, y: origin.y)
         let rect = CGRect(x: 0, y: 0, width: Self.width, height: Self.height)
@@ -193,12 +200,7 @@ final class Overlay {
             ctx.setFillColor((m == .popover ? NSColor(white: 0.96, alpha: 0.9) : NSColor(white: 0.13, alpha: 0.88)).cgColor)
             ctx.fill(rect)
         case .glass:
-            ctx.setFillColor(NSColor(white: 1, alpha: 0.10).cgColor)
-            ctx.fill(rect)
-            ctx.setStrokeColor(NSColor(white: 1, alpha: 0.45).cgColor)
-            ctx.setLineWidth(1.5)
-            ctx.addPath(path)
-            ctx.strokePath()
+            break  // handled above
         case .solid(let c):
             ctx.setFillColor(c.cgColor)
             ctx.fill(rect)

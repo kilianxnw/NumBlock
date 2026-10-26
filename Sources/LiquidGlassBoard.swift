@@ -3,6 +3,7 @@ import AppKit
 /// "Glas" design on macOS 26: every key and the display are individual, see-through Liquid Glass
 /// elements floating on the desktop (no backing slab). They share one NSGlassEffectContainerView,
 /// so a pressed key that bulges towards its neighbours briefly melts into them.
+/// macOS draws the blur and refraction; GlassSheenView adds the iOS-style rim light and edge glow.
 @available(macOS 26.0, *)
 final class LiquidGlassBoard: NSView {
     /// Glass shapes closer than this merge. Resting gap is larger, so only a pressed (bulged) key merges.
@@ -37,6 +38,7 @@ final class LiquidGlassBoard: NSView {
             glow.layer?.cornerRadius = 25
             glow.alphaValue = 0
             host.addSubview(glow)
+            host.addSubview(GlassSheenView(frame: host.bounds, radius: 25))
             let label = Self.label(key.label, font: key == .delete
                 ? .systemFont(ofSize: 22, weight: .regular)
                 : Self.rounded(24, .medium))
@@ -48,6 +50,7 @@ final class LiquidGlassBoard: NSView {
         let displayGlass = makeGlass(displayFrame, radius: 20)
         let dc = NSView(frame: NSRect(origin: .zero, size: displayFrame.size))
         displayGlass.contentView = dc
+        dc.addSubview(GlassSheenView(frame: dc.bounds, radius: 20))
 
         let caption = Self.label("", font: .systemFont(ofSize: 10, weight: .semibold))
         caption.attributedStringValue = NSAttributedString(string: "NUMPAD", attributes: [
@@ -120,7 +123,7 @@ final class LiquidGlassBoard: NSView {
 
     private func makeGlass(_ rect: CGRect, radius: CGFloat) -> NSGlassEffectView {
         let g = NSGlassEffectView(frame: rect)
-        g.style = .clear
+        g.style = .regular
         g.cornerRadius = radius
         return g
     }
@@ -134,13 +137,7 @@ final class LiquidGlassBoard: NSView {
         ])
     }
 
-    private static let legibilityShadow: NSShadow = {
-        let s = NSShadow()
-        s.shadowColor = NSColor.black.withAlphaComponent(0.35)
-        s.shadowBlurRadius = 3
-        s.shadowOffset = NSSize(width: 0, height: -0.5)
-        return s
-    }()
+    private static var legibilityShadow: NSShadow { GlassSheenView.legibilityShadow }
 
     private static func label(_ text: String, font: NSFont) -> NSTextField {
         let l = NSTextField(labelWithString: text)

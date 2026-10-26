@@ -54,6 +54,21 @@ if let i = args.firstIndex(of: "--render"), i + 1 < args.count {
         NSColor(srgbRed: 0.93, green: 0.75, blue: 0.55, alpha: 1).cgColor,
     ] as CFArray, locations: nil)!
     ctx.drawLinearGradient(wallpaper, start: .zero, end: CGPoint(x: W, y: H), options: [])
+    // Some shapes behind the designs, so blur and transparency are visible.
+    let blobs: [(CGFloat, CGFloat, CGFloat, NSColor)] = [
+        (0.80, 0.80, 110, NSColor(srgbRed: 1.0, green: 0.55, blue: 0.2, alpha: 1)),
+        (0.93, 0.62, 80, .white),
+        (0.70, 0.62, 60, NSColor(srgbRed: 0.95, green: 0.3, blue: 0.5, alpha: 1)),
+        (0.88, 0.95, 70, NSColor(srgbRed: 0.2, green: 0.8, blue: 0.5, alpha: 1)),
+        (0.25, 0.30, 90, NSColor(srgbRed: 1.0, green: 0.85, blue: 0.3, alpha: 1)),
+    ]
+    for (fx, fy, r, c) in blobs {
+        ctx.setFillColor(c.cgColor)
+        ctx.fillEllipse(in: CGRect(x: fx * W - r, y: fy * H - r, width: 2 * r, height: 2 * r))
+    }
+    ctx.setFillColor(NSColor(white: 0.1, alpha: 0.9).cgColor)
+    ctx.fill(CGRect(x: W * 0.68, y: H * 0.70, width: 140, height: 18))
+    ctx.fill(CGRect(x: W * 0.68, y: H * 0.66, width: 200, height: 18))
     for (n, th) in themes.enumerated() {
         let o = Overlay(theme: th)
         let x = margin + CGFloat(n % cols) * (Overlay.width + margin)
