@@ -33,7 +33,9 @@ unverändert für alle Kürzel.
 Im Menüleisten-Icon (#) lässt sich einstellen:
 - Aktivierungstaste: rechte ⌘ (Standard), rechte ⌥ oder fn/🌐
 - Auslösen: **beim Berühren** (Standard, am schnellsten) oder **beim Klicken** (Finger dürfen aufliegen, erst der Klick zählt)
-- Haptisches Feedback, Overlay ein/aus, bei der Anmeldung starten
+- **Ton beim Tippen**: ein kurzer, weicher „Thock“, ähnlich einer mechanischen Taste; er folgt der Systemlautstärke, bei Stummschaltung ist er still
+- **Vibration**: Aus / Leicht / Mittel / Stark; die Taptic Engine wird direkt angesteuert, beim Auswählen gibt es eine Vorschau
+- Overlay ein/aus, bei der Anmeldung starten
 
 ## Bauen und installieren
 
@@ -49,8 +51,9 @@ kann keine App Tasten senden oder Klicks abfangen. Die App wird mit dem eigenen
 Apple-Development-Zertifikat signiert, deshalb bleibt die Freigabe auch nach einem Rebuild
 erhalten.
 
-Diagnose: `build/TrackNum.app/Contents/MacOS/TrackNum --probe` gibt jede Berührung
-mit Koordinaten und erkannter Taste im Terminal aus.
+Diagnose:
+- `…/TrackNum --probe` gibt jede Berührung mit Koordinaten und erkannter Taste aus.
+- `…/TrackNum --feedback` spielt sechs Klicks mit starker Vibration ab (Finger aufs Trackpad legen).
 
 ## Entwicklungsstrategie
 
@@ -96,6 +99,7 @@ Abhängigkeiten.
 | `Sources/PadLayout.swift` | Zuordnung Position → Taste |
 | `Sources/Engine.swift` | Zustandsmaschine, Tastenausgabe |
 | `Sources/InputTap.swift` | Event-Tap-Thread |
+| `Sources/Feedback.swift` | Ton (synthetisiert, AVAudioEngine) und Taptic-Engine-Vibration |
 | `Sources/Overlay.swift` | Anzeige-Panel |
 | `Sources/AppDelegate.swift` | Menüleiste, Einstellungen, Berechtigungen |
 | `Sources/main.swift` | Einstieg, `--selftest`, `--probe` |

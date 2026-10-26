@@ -21,9 +21,16 @@ final class Settings {
         get { Trigger(rawValue: d.string(forKey: "trigger") ?? "") ?? .touch }
         set { d.set(newValue.rawValue, forKey: "trigger") }
     }
-    var haptics: Bool {
-        get { bool("haptics", default: true) }
-        set { d.set(newValue, forKey: "haptics") }
+    var sound: Bool {
+        get { bool("sound", default: true) }
+        set { d.set(newValue, forKey: "sound") }
+    }
+    var haptic: HapticStrength {
+        get {
+            if let s = d.string(forKey: "hapticStrength"), let h = HapticStrength(rawValue: s) { return h }
+            return bool("haptics", default: true) ? .strong : .off  // older on/off setting
+        }
+        set { d.set(newValue.rawValue, forKey: "hapticStrength") }
     }
     var showOverlay: Bool {
         get { bool("showOverlay", default: true) }
@@ -57,6 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updateIcon(active: false)
 
         deviceCount = Multitouch.start()
+        Feedback.shared.haptics.reload(deviceIDs: Multitouch.deviceIDs)
         startInputTap()
 
         let ws = NSWorkspace.shared.notificationCenter
@@ -67,6 +75,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             // Devices come back a moment after wake.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 self?.deviceCount = Multitouch.restart()
+                Feedback.shared.haptics.reload(deviceIDs: Multitouch.deviceIDs)
                 Engine.shared.resync()
             }
         }
@@ -83,6 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Freeze the cursor while the pad is a numpad.
         CGAssociateMouseAndMouseCursorPosition(active ? 0 : 1)
         if active {
+            Feedback.shared.modeActivated()
             if settings.showOverlay { overlay.show(latched: latched) }
         } else {
             overlay.hide()
@@ -92,9 +102,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func keyFired(_ key: PadKey) {
         if settings.showOverlay { overlay.flash(key) }
-        if settings.haptics {
-            NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
-        }
     }
 
     // MARK: Permissions
@@ -115,6 +122,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func applySettings() {
         Engine.shared.configure(enabled: settings.enabled, hotkey: settings.hotkey, trigger: settings.trigger)
+        Feedback.shared.configure(sound: settings.sound, haptic: settings.haptic)
     }
 
     private func updateIcon(active: Bool) {
@@ -162,8 +170,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         triggerItem.submenu = triggerMenu
         menu.addItem(triggerItem)
 
+        menu.addItem(item("Ton beim Tippen", #selector(toggleSound), on: settings.sound))
+
+        let hapticMenu = NSMenu()
+        for h in HapticStrength.allCases {
+            let i = item(h.title, #selector(selectHaptic(_:)), on: settings.haptic == h)
+            i.representedObject = h.rawValue
+            hapticMenu.addItem(i)
+        }
+        let hapticItem = NSMenuItem(title: "Vibration: \(settings.haptic.title)", action: nil, keyEquivalent: "")
+        hapticItem.submenu = hapticMenu
+        menu.addItem(hapticItem)
+        menu.addItem(.separator())
+
         menu.addItem(item("Overlay anzeigen", #selector(toggleOverlay), on: settings.showOverlay))
-        menu.addItem(item("Haptisches Feedback", #selector(toggleHaptics), on: settings.haptics))
         menu.addItem(item("Bei Anmeldung starten", #selector(toggleLogin), on: SMAppService.mainApp.status == .enabled))
         menu.addItem(.separator())
 
@@ -199,7 +219,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func toggleOverlay() { settings.showOverlay.toggle() }
-    @objc private func toggleHaptics() { settings.haptics.toggle() }
+    @objc private func toggleSound() {
+        settings.sound.toggle()
+        applySettings()
+        if settings.sound { Feedback.shared.sound.play() }  // preview
+    }
+
+    @objc private func selectHaptic(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let h = HapticStrength(rawValue: raw) else { return }
+        settings.haptic = h
+        applySettings()
+        // Preview – the finger is on the trackpad right after the click.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { Feedback.shared.haptics.actuate(h) }
+    }
 
     @objc private func toggleLogin() {
         let service = SMAppService.mainApp

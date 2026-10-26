@@ -18,6 +18,21 @@ if args.contains("--probe") {
     dispatchMain()
 }
 
+if args.contains("--feedback") {
+    // Plays a short burst of digit feedback (sound + strongest vibration) – finger on the trackpad to feel it.
+    setvbuf(stdout, nil, _IOLBF, 0)
+    Multitouch.start()
+    let ids = Multitouch.deviceIDs
+    Feedback.shared.haptics.reload(deviceIDs: ids)
+    Feedback.shared.configure(sound: true, haptic: .strong)
+    print("Feedback-Test – \(ids.count) Aktuator(en).")
+    for i in 0..<6 {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3 + Double(i) * 0.16) { Feedback.shared.keyPressed() }
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { exit(0) }
+    dispatchMain()
+}
+
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate

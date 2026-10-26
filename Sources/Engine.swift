@@ -258,6 +258,7 @@ final class Engine {
 
     private func emit(_ key: PadKey) {
         post(key)
+        Feedback.shared.keyPressed()
         DispatchQueue.main.async { self.onKey?(key) }
     }
 
